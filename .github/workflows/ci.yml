@@ -6,7 +6,9 @@ on:
     branches:
       - "**"
   pull_request:
-
+permissions:
+  contents: read
+  packages: write
 jobs:
   backend-quality:
     name: Django Tests, Quality & Security
@@ -76,3 +78,37 @@ jobs:
       - name: Build Frontend Image
         run: |
           docker build -t careerverse-frontend:ci ./frontend
+  docker-publish:
+    name: Publish Docker Images to GHCR
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feature/test-setup'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/oumaima-werghimmi/careerverse-backend:latest
+            ghcr.io/oumaima-werghimmi/careerverse-backend:${{ github.sha }}
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/oumaima-werghimmi/careerverse-frontend:latest
+            ghcr.io/oumaima-werghimmi/careerverse-frontend:${{ github.sha }}
