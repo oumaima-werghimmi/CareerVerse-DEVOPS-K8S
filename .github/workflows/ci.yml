@@ -59,3 +59,20 @@ jobs:
           DJANGO_DEBUG: "0"
           DJANGO_SECRET_KEY: "ci-test-secret-key"
         run: python manage.py check --deploy
+
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: backend-quality
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: |
+          docker build -t careerverse-backend:ci ./backend
+
+      - name: Build Frontend Image
+        run: |
+          docker build -t careerverse-frontend:ci ./frontend
