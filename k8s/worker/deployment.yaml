@@ -1,0 +1,29 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: push-worker
+  namespace: careerverse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: push-worker
+  template:
+    metadata:
+      labels:
+        app: push-worker
+    spec:
+      containers:
+        - name: push-worker
+          image: projet_django_careerverse_dev-backend:latest
+          imagePullPolicy: Never
+          command:
+            - sh
+            - -c
+            - while true; do python manage.py send_push_notifications || true; sleep 60; done
+          envFrom:
+            - configMapRef:
+                name: careerverse-config
+            - secretRef:
+                name: careerverse-secret

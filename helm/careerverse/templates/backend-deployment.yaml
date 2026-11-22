@@ -1,0 +1,26 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: {{ .Values.replicaCount.backend }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}"
+          imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: careerverse-config
+            - secretRef:
+                name: careerverse-secret

@@ -1,0 +1,11 @@
+
+django:
+  debug: "0"
+  allowedHosts: "localhost,127.0.0.1,backend,frontend,careerverse-helm.local"
+  webAppOrigin: "http://careerverse-helm.local"
+  secretKey: "careerverse-kubernetes-change-this-secret-key"
+
+ingress:
+  enabled: true
+  className: nginx
+  host: careerverse-helm.local

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: careerverse-config
+  namespace: careerverse
+data:
+  DJANGO_DEBUG: "0"
+  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,backend,frontend,careerverse.local"
+  WEB_APP_ORIGIN: "http://careerverse.local"
+  DATABASE_URL: "postgresql://careerverse:careerverse-local@database:5432/careerverse"

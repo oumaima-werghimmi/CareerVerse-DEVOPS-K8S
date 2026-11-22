@@ -1,0 +1,19 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: careerverse-ingress
+  namespace: careerverse
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: careerverse.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

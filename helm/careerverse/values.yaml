@@ -1,0 +1,39 @@
+
+replicaCount:
+  backend: 1
+  frontend: 1
+  worker: 1
+  database: 1
+
+images:
+  backend:
+    repository: projet_django_careerverse_dev-backend
+    tag: latest
+    pullPolicy: Never
+  frontend:
+    repository: projet_django_careerverse_dev-frontend
+    tag: latest
+    pullPolicy: Never
+  database:
+    repository: postgres
+    tag: "17-alpine"
+    pullPolicy: IfNotPresent
+
+django:
+  debug: "0"
+  allowedHosts: "localhost,127.0.0.1,backend,frontend,careerverse.local"
+  webAppOrigin: "http://careerverse.local"
+  secretKey: "careerverse-kubernetes-change-this-secret-key"
+
+database:
+  name: careerverse
+  user: careerverse
+  password: careerverse-local
+  url: "postgresql://careerverse:careerverse-local@database:5432/careerverse"
+  storage: 2Gi
+  storageClassName: standard
+
+ingress:
+  enabled: true
+  className: nginx
+  host: careerverse.local

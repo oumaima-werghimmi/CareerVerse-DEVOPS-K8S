@@ -1,0 +1,10 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: careerverse-config
+data:
+  DJANGO_DEBUG: {{ .Values.django.debug | quote }}
+  DJANGO_ALLOWED_HOSTS: {{ .Values.django.allowedHosts | quote }}
+  WEB_APP_ORIGIN: {{ .Values.django.webAppOrigin | quote }}
+  DATABASE_URL: {{ .Values.database.url | quote }}
