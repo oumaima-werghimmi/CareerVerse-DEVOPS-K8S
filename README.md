@@ -232,3 +232,101 @@ npm run typecheck
 npm run build
 npm test
 ```
+## 📊 Monitoring & Observability (Prometheus + Grafana)
+
+CareerVerse integrates a monitoring and observability stack to monitor the Kubernetes infrastructure and visualize application metrics.
+
+### Prometheus
+Prometheus is used for metrics collection and monitoring. The project includes:
+- Prometheus monitoring configuration.
+- Custom monitoring and alerting rules.
+- Kubernetes monitoring through the kube-prometheus-stack.
+
+### Grafana
+Grafana provides dashboards for monitoring and visualizing the infrastructure.
+
+The project includes:
+- A custom CareerVerse monitoring dashboard.
+- Dashboard provisioning configuration.
+- Grafana deployment and configuration scripts.
+
+**Monitoring configuration:**
+
+```text
+deploy/
+├── monitoring/
+│   ├── careerverse-dashboard.json
+│   └── kube-prometheus-stack-values.yaml
+├── k8s/
+│   ├── 10-monitoring-rules.yaml
+│   └── 20-grafana-dashboard.yaml
+└── scripts/
+    ├── deploy-minikube.ps1
+    └── fix-grafana.ps1
+```
+
+## ☁️ Infrastructure as Code (Terraform)
+
+Terraform is integrated into the project to define and manage infrastructure using Infrastructure as Code (IaC).
+
+### Terraform structure
+
+```text
+deploy/terraform/
+├── main.tf
+├── variables.tf
+└── outputs.tf
+```
+
+- **main.tf:** Defines the infrastructure resources.
+- **variables.tf:** Defines configurable infrastructure variables.
+- **outputs.tf:** Defines the outputs returned after deployment.
+
+### Terraform commands
+
+Initialize Terraform:
+
+```bash
+terraform init
+```
+
+Format Terraform configuration:
+
+```bash
+terraform fmt
+```
+
+Validate the configuration:
+
+```bash
+terraform validate
+```
+
+Preview infrastructure changes:
+
+```bash
+terraform plan
+```
+
+Apply the configuration after reviewing the execution plan:
+
+```bash
+terraform apply
+```
+
+> Note: Terraform deployment must be executed in an appropriately configured environment. Review the execution plan before applying infrastructure changes.
+
+## 🚀 DevOps & Monitoring Architecture
+
+The project combines several DevOps technologies:
+
+| Technology | Purpose |
+|---|---|
+| Docker | Containerization |
+| Kubernetes | Container orchestration |
+| Minikube | Local Kubernetes cluster |
+| Helm | Kubernetes package management |
+| Prometheus | Metrics collection |
+| Grafana | Monitoring dashboards |
+| Terraform | Infrastructure as Code |
+| GitHub Actions | CI automation |

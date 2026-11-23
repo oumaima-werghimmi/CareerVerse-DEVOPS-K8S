@@ -2,7 +2,7 @@ import { TranslatePipe } from '../core/locale.service';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { IonButton, IonSpinner } from '@ionic/angular/standalone';
+import { IonicModule } from '@ionic/angular';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/api.service';
 import { CareerCarouselComponent } from '../widgets/career-carousel.component';
@@ -11,7 +11,7 @@ import { GoogleSigninComponent } from '../widgets/google-signin.component';
 
 @Component({
   standalone: true,
-imports: [TranslatePipe, FormsModule, IonButton, IonSpinner, RouterLink, CareerCarouselComponent, AppIconComponent, GoogleSigninComponent],
+  imports: [TranslatePipe, FormsModule, IonicModule, RouterLink, CareerCarouselComponent, AppIconComponent, GoogleSigninComponent],
   template: `
     <div class="auth-layout welcome-layout">
       <section class="auth-story">

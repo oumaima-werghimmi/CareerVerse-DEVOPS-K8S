@@ -1,0 +1,47 @@
+# Prometheus Operator : scrape /metrics du backend + alertes.
+# Le label release=monitoring est OBLIGATOIRE : c'est lui que le Prometheus du chart selectionne.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: careerverse-backend
+  namespace: monitoring
+  labels: {release: monitoring}
+spec:
+  namespaceSelector: {matchNames: [careerverse]}
+  selector: {matchLabels: {app: backend}}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: careerverse-alerts
+  namespace: monitoring
+  labels: {release: monitoring}
+spec:
+  groups:
+    - name: careerverse
+      rules:
+        - alert: BackendDown
+          expr: sum(up{job="backend", namespace="careerverse"}) == 0
+          for: 1m
+          labels: {severity: critical}
+          annotations: {summary: "Backend CareerVerse injoignable"}
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(django_http_responses_total_by_status_total{status=~"5.."}[5m]))
+              / clamp_min(sum(rate(django_http_responses_total_by_status_total[5m])), 0.001) > 0.05
+          for: 2m
+          labels: {severity: warning}
+          annotations: {summary: "Plus de 5% de reponses 5xx"}
+        - alert: HighLatencyP95
+          expr: histogram_quantile(0.95, sum(rate(django_http_requests_latency_including_middlewares_seconds_bucket[5m])) by (le)) > 1
+          for: 5m
+          labels: {severity: warning}
+          annotations: {summary: "Latence p95 > 1s"}
+        - alert: PodRestarting
+          expr: increase(kube_pod_container_status_restarts_total{namespace="careerverse"}[15m]) > 2
+          labels: {severity: warning}
+          annotations: {summary: "Un pod CareerVerse redemarre en boucle"}

@@ -1,0 +1,154 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: careerverse
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: careerverse-secrets
+  namespace: careerverse
+type: Opaque
+stringData:   # DEMO ONLY - en prod: AWS Secrets Manager / External Secrets
+  POSTGRES_PASSWORD: careerverse-local
+  DJANGO_SECRET_KEY: change-me-demo-only-0123456789abcdef0123456789abcdef
+  DATABASE_URL: postgresql://careerverse:careerverse-local@database:5432/careerverse
+---
+# ---------- PostgreSQL ----------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: postgres-data, namespace: careerverse}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: database, namespace: careerverse}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: database}}
+  template:
+    metadata: {labels: {app: database}}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports: [{containerPort: 5432}]
+          env:
+            - {name: POSTGRES_DB, value: careerverse}
+            - {name: POSTGRES_USER, value: careerverse}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: careerverse-secrets, key: POSTGRES_PASSWORD}}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          readinessProbe:
+            exec: {command: [pg_isready, -U, careerverse, -d, careerverse]}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 384Mi}
+          volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: postgres-data}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: database, namespace: careerverse}
+spec:
+  selector: {app: database}
+  ports: [{port: 5432, targetPort: 5432}]
+---
+# ---------- Migration + seed (une seule fois) ----------
+apiVersion: batch/v1
+kind: Job
+metadata: {name: backend-migrate, namespace: careerverse}
+spec:
+  backoffLimit: 15            # retente tant que Postgres n'est pas pret
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: careerverse-backend:local
+          imagePullPolicy: IfNotPresent
+          command: [sh, -c]
+          args: ["python manage.py migrate && python manage.py seed_demo && python manage.py seed_extended && python manage.py seed_premium"]
+          env:
+            - {name: DJANGO_DEBUG, value: "0"}
+            - name: DJANGO_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: careerverse-secrets, key: DJANGO_SECRET_KEY}}
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: careerverse-secrets, key: DATABASE_URL}}
+---
+# ---------- Backend Django ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: backend, namespace: careerverse}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: backend}}
+  template:
+    metadata: {labels: {app: backend}}
+    spec:
+      containers:
+        - name: backend
+          image: careerverse-backend:local
+          imagePullPolicy: IfNotPresent
+          # 1 worker + threads : les metriques Prometheus restent coherentes (pas de multiprocess).
+          # On scale avec les replicas, pas avec les workers.
+          command: [gunicorn, config.wsgi:application, --bind, "0.0.0.0:8000", --workers, "1", --threads, "4", --access-logfile, "-"]
+          ports: [{name: http, containerPort: 8000}]
+          env:
+            - {name: DJANGO_DEBUG, value: "0"}
+            - {name: DJANGO_ALLOWED_HOSTS, value: "localhost,127.0.0.1,backend,backend.careerverse.svc"}
+            - {name: WEB_APP_ORIGIN, value: "http://localhost:8080"}
+            - name: POD_IP
+              valueFrom: {fieldRef: {fieldPath: status.podIP}}
+            - name: DJANGO_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: careerverse-secrets, key: DJANGO_SECRET_KEY}}
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: careerverse-secrets, key: DATABASE_URL}}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 15, periodSeconds: 10}
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: careerverse
+  labels: {app: backend}
+spec:
+  selector: {app: backend}
+  ports: [{name: http, port: 8000, targetPort: http}]
+---
+# ---------- Frontend (nginx) ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: frontend, namespace: careerverse}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: frontend}}
+  template:
+    metadata: {labels: {app: frontend}}
+    spec:
+      containers:
+        - name: frontend
+          image: careerverse-frontend:local
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 80}]
+          readinessProbe: {httpGet: {path: /, port: 80}, periodSeconds: 5}
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: frontend, namespace: careerverse}
+spec:
+  selector: {app: frontend}
+  ports: [{port: 80, targetPort: 80}]

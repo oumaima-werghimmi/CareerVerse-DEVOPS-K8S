@@ -1,0 +1,36 @@
+# helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring -f this-file
+# Allege pour Minikube : evite les OOMKilled du pod Grafana (cause de "connection refused" sur 3000).
+fullnameOverride: ""
+grafana:
+  adminPassword: admin          # DEMO ; change-le
+  defaultDashboardsTimezone: browser
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 512Mi}
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard   # charge tout ConfigMap portant ce label
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+  # Port-forward plus fiable : readiness stricte
+  readinessProbe: {httpGet: {path: /api/health, port: 3000}, initialDelaySeconds: 10}
+prometheus:
+  prometheusSpec:
+    retention: 2d
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+      limits: {memory: 1Gi}
+    # Prometheus prend TOUS les ServiceMonitor/PrometheusRule, sans exiger le label release
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+alertmanager:
+  alertmanagerSpec:
+    resources: {requests: {cpu: 10m, memory: 32Mi}}
+# Composants inutiles/instables sur Minikube
+kubeEtcd: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeControllerManager: {enabled: false}
+kubeProxy: {enabled: false}
